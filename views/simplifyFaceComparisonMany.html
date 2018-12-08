@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>多图片对比相识度</title>
+  <script src="face-api.js"></script>
+</head>
+
+<body>
+  <p>F12控制台查看，源码简化</p>
+  <!-- <img id="face1" src="https://dwz.cn/kXUrwcGG" />
+  <img id="face2" src="https://dwz.cn/Fi5mUbYK" /> -->
+  <img id="face1" src="images/安悦溪1.jpg" width="300" />
+  <img id="face2" src="images/安悦溪2.jpg" width="300" />
+  <img id="face3" src="images/张杰1.jpg" width="300" />
+  <img id="face4" src="images/张杰2.jpg" width="300" /> <br />
+  <img id="face5" src="images/张杰3.jpg" width="300" />
+  <img id="face6" src="images/张杰4.jpg" width="300" />
+</body>
+<script>
+  // 人脸对比模型数组对象
+  let faceMatcher = null
+
+  // 执行遍历对比图片数组
+  async function runArray() {
+    // 使用对比模型里的图片
+    // const picArrays = ['https://dwz.cn/ZggSBEtL', 'https://dwz.cn/U7nR0no0']
+    const picArrays = ['images/张杰3.jpg', 'images/张杰4.jpg']
+    // 遍历对比里图片
+    for (const key in picArrays) {
+      if (picArrays.hasOwnProperty(key)) {
+        const element = picArrays[key];
+        // 数组遍历开始
+        console.log('开始对比：', element)
+        const ts = Date.now()
+        // 获取图片base64
+        const input = await faceapi.fetchImage(element)
+        // 图片转码
+        const descriptor = await faceapi.computeFaceDescriptor(input)
+        // 图片鉴别
+        const bestMatch = faceMatcher.findBestMatch(descriptor)
+        // 鉴别效果
+        console.log('鉴别结果：' + bestMatch.toString(), '鉴别时间：' + `${(Date.now() - ts)} ms`, 'FPS：' + faceapi.round(
+          1000 / (Date.now() - ts)))
+        // 数组遍历结束
+      }
+    }
+  }
+
+  // 人脸对比模型数组对象
+  async function createFaceMatcher() {
+    // 模型里的图片
+    // const picArray = [{
+    //     name: '安悦溪',
+    //     img: ['https://dwz.cn/Fi5mUbYK', 'https://dwz.cn/kXUrwcGG']
+    //   },
+    //   {
+    //     name: '张杰',
+    //     img: ['https://dwz.cn/PVtFiWoI']
+    //   }
+    // ]
+    const picArray = [{
+        name: '安悦溪',
+        img: ['images/安悦溪1.jpg', 'images/安悦溪2.jpg']
+      },
+      {
+        name: '张杰',
+        img: ['images/张杰1.jpg', 'images/张杰2.jpg']
+      }
+    ]
+    // 预存图片转码数组
+    const labeledFaceDescriptors = await Promise.all(picArray.map(
+      async (pic, index) => {
+        console.log(pic.name, pic.img)
+        // 用数组存储图片转码数据
+        const descriptors = []
+        for (const imgage of pic.img) {
+          const img = await faceapi.fetchImage(imgage)
+          descriptors.push(await faceapi.computeFaceDescriptor(img))
+        }
+        // 返回图片用户和图片转码数组
+        return new faceapi.LabeledFaceDescriptors(
+          pic.name,
+          descriptors
+        )
+      }
+    ))
+    console.log('图片转码数组对象', labeledFaceDescriptors)
+    return new faceapi.FaceMatcher(labeledFaceDescriptors)
+  }
+
+  async function run() {
+    // 加载模型
+    await faceapi.loadFaceRecognitionModel()
+    // 创建人脸对比模型数组对象
+    faceMatcher = await createFaceMatcher()
+    // 执行遍历对比
+    runArray()
+  }
+  run()
+</script>
+
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>图片对比相识度</title>
+  <script src="face-api.js"></script>
+</head>
+
+<body>
+  <!-- <img id="face1" src="https://dwz.cn/kXUrwcGG" />
+  <img id="face2" src="https://dwz.cn/Fi5mUbYK" /> -->
+  <img id="face1" src="images/安悦溪1.jpg" />
+  <img id="face2" src="images/安悦溪2.jpg" />
+  <p>F12控制台查看，源码简化</p>
+</body>
+<script>
+  // 相识范围
+  const threshold = 0.6
+  // 图像数据数组
+  let descriptors = {
+    desc1: null,
+    desc2: null
+  }
+  async function run() {
+    // 加载模型
+    await faceapi.loadFaceRecognitionModel();
+    // 图片一
+    const input1 = await faceapi.fetchImage('images/安悦溪1.jpg')
+    descriptors[`desc1`] = await faceapi.computeFaceDescriptor(input1)
+    // 图片二
+    const input2 = await faceapi.fetchImage('images/安悦溪2.jpg')
+    descriptors[`desc2`] = await faceapi.computeFaceDescriptor(input2)
+    // 图片相识度
+    const distance = faceapi.round(
+      faceapi.euclideanDistance(descriptors.desc1, descriptors.desc2)
+    )
+    // 判断
+    console.log("误差值：", distance,"相似度:", (1- distance).toFixed(2))
+    if (distance > threshold) {
+      console.log(distance, "误差相似度>0.6不比配")
+    }
+  }
+  run()
+</script>
+
+</html>

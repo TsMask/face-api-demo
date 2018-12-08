@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>WebRTC媒体人脸检测</title>
+  <script src="face-api.js"></script>
+  <style>
+    .media {
+      position: relative;
+      margin: 20px;
+    }
+
+    #canvasDOM {
+      position: absolute;
+      left: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <p>F12控制台查看，源码简化</p>
+  <div class="media">
+    <video onplay="onPlay(this)" id="videoDom" autoplay muted></video>
+    <canvas id="canvasDOM"></canvas>
+  </div>
+</body>
+
+<script>
+  // 人脸框绘制
+  function drawDetections(dimensions, canvas, detections) {
+    // 初始媒体大小
+    let mediaDimensions = {
+      width: 640,
+      height: 480
+    }
+    // 判断是否媒体视频对象
+    if (dimensions instanceof HTMLVideoElement) {
+      // 获取媒体视频对象大小
+      mediaDimensions = faceapi.getMediaDimensions(dimensions)
+    }
+    // 修改画布大小 
+    canvas.width = mediaDimensions.width
+    canvas.height = mediaDimensions.height
+    // 视频对象人脸框在画布中绘制大小
+    const resizedDetections = detections.map(res => res.forSize(mediaDimensions.width, mediaDimensions.height))
+    // 人脸框绘制参数
+    const drawDetectionOptions = {
+      lineWidth: 2,
+      textColor: 'red',
+      boxColor: 'red',
+      withScore: true
+    }
+    faceapi.drawDetection(canvas, resizedDetections, drawDetectionOptions)
+  }
+
+  // 视频绘制图像框
+  async function onPlay() {
+    // 获取视频对象
+    const videoEl = document.getElementById('videoDom');
+    // 获取画布输出对象
+    const canvasEL = document.getElementById('canvasDOM');
+    // 时间计时
+    const ts = Date.now()
+    // 判断视频对象是否暂停结束
+    if (videoEl.paused || videoEl.ended) {
+      return setTimeout(() => onPlay())
+    }
+    // 简单人脸检测扫描
+    const faceDetectionTask = await faceapi.detectSingleFace(videoEl, new faceapi.TinyFaceDetectorOptions({
+      inputSize: 512,
+      scoreThreshold: 0.5
+    }))
+    // 判断人脸扫描结果
+    if (faceDetectionTask) {
+      // 画布绘制人脸框
+      drawDetections(videoEl, canvasEL, [faceDetectionTask])
+    } else {
+      console.log('检测失败', [faceDetectionTask])
+    }
+    console.log('时间：' + `${Math.round((Date.now() - ts))} ms`, 'FPS：' + `${faceapi.round(1000 / (Date.now() - ts))}`)
+    setTimeout(() => onPlay())
+  }
+
+  async function run() {
+    // 加载模型
+    await faceapi.loadTinyFaceDetectorModel()
+    // WebRTC媒体驱动
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true
+    })
+    const videoEl = document.getElementById('videoDom');
+    videoEl.srcObject = stream;
+    console.log('延时启动2000')
+    // 延时启动
+    setTimeout(() => {
+      onPlay()
+    }, 2000);
+  }
+  
+  run()
+</script>
+</body>
+
+</html>
